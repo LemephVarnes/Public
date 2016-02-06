@@ -1,0 +1,294 @@
+<html>
+	<head>
+		<title>Geospatial Assignment 1</title>
+		<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
+		<link rel="stylesheet" href="MarkerCluster.css"/>
+		<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+		<!--<script src="leaflet.markercluster.js"></script>-->
+		<script src="jquery-2.1.1.min.js"></script>
+		<style>
+		#map{ height: 100% }
+		.legend {
+			line-height: 18px;
+			color: #555;
+		}
+		.legend i {
+			width: 18px;
+			height: 18px;
+			float: left;
+			margin-right: 8px;
+			opacity: 0.7;
+		}
+		</style>
+	</head>
+	<body>
+		<!--Container to hold the map-->
+		<div id="map"></div>
+		
+		<!--Create a map in this div-->
+		<script>
+			<!--initialize map using L.map and centres map view using setView-->
+			//var map=L.map('map',{layers: [grayscale, cities]}).setView([1.3505, 103.7920], 11);
+			var layer_group = new L.layerGroup([]);
+			var layer_group2 = new L.layerGroup([]);
+			var layer_group3 = new L.layerGroup([]);
+			var layer_group4 = new L.layerGroup([]);
+			var layer_group5 = new L.layerGroup([]);
+			var layer_group6 = new L.layerGroup([]);
+			<!--create base layer of map tiles using tilelayer-->
+			var basemap=L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+			attribution: 'Tiles by <a href="http://openstreetmap.org">OpenStreetMap</a> contributors,<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+			maxZoom:19,
+			minZoom:9
+			});//.addTo(map);<!--add layer to created map-->
+			<!--end of base map-->
+			
+			// load GeoJSON from an external file
+			<!--Start loading choropleth-->
+			function getColor(d) {
+				return d > 12780 ? '#006837' :
+						d > 6290  ? '#31a354' :
+						d > 3500  ? '#78c679' :
+						d > 1290  ? '#c2e699' :
+							'#ffffcc';
+				}
+			
+			
+			var choropleth;
+			$.getJSON("SubzoneJoinedPopnGeoJson.geojson",function(hoodData){
+				choropleth=L.geoJson( hoodData, {
+					style: function(feature){
+						var fillColor,
+						density = feature.properties.AgeAbove60;
+						if ( density > 12780 ) fillColor = "#006837";
+						else if ( density > 6290 ) fillColor = "#31a354";
+						else if ( density > 3500 ) fillColor = "#78c679";
+						else if ( density > 1290 ) fillColor = "#c2e699";
+						else fillColor = "#ffffcc";
+						//else fillColor = "#f7f7f7";  // no data
+						return { color: "#999", weight: 1, fillColor: fillColor, fillOpacity: .6 };
+					},
+					onEachFeature: function( feature, layer ){
+						layer.bindPopup( "<strong>" + feature.properties.SUBZONE_N + "</strong><br/>" + feature.properties.AgeAbove60 + " residents" )
+					}
+				});
+				//choropleth.addTo(map);
+				layer_group.addLayer(choropleth);
+				//feature_group.addTo(map);
+			});
+			<!--End loading choropleth-->
+			
+			<!--Start loading residences-->
+			var residences;
+			$.getJSON("ElderlyResidentialGeoJson.geojson",function(data){
+			var houseIcon=L.icon({iconUrl:'home-512.png', iconSize:[10,10]});
+			
+			residences=L.geoJson(data,{
+				pointToLayer: function(feature,latlng){
+				var marker = L.marker(latlng,{icon: houseIcon});
+				marker.bindPopup(feature.properties.Name + '<br/>' +feature.properties.Address + ' ' + feature.properties.Postalcode);
+				return marker;
+				}
+			});
+				layer_group2.addLayer(residences);
+				//feature_group.addTo(map);
+			});
+			<!--End loading residences-->
+			
+			<!--Start loading subway lines-->
+			var subwaylines;
+			$.getJSON("SubwayShapeGeoJson.geojson",function(data){
+				subwaylines=L.geoJson(data);
+				layer_group3.addLayer(subwaylines);
+				//feature_group.addTo(map);
+			});
+			<!--End loading subway lines-->
+			
+			<!--Start loading train stations-->
+			var subwaystation;
+			$.getJSON("TrainStations2GeoJson.geojson",function(data){
+			var houseIcon=L.icon({iconUrl:'MRT.png', iconSize:[10,10]});
+			var house2Icon=L.icon({iconUrl:'MRTE.png', iconSize:[10,10]});
+			
+			subwaystation=L.geoJson(data,{
+				pointToLayer: function(feature,latlng){
+				//var marker = L.marker(latlng,{icon: houseIcon});
+				//marker.bindPopup(feature.properties.STN_NAM);
+				//return marker;
+				if(feature.properties.ElderlyFriendlyMRTFinal_EderlyFrie===1)return L.marker(latlng,{icon: houseIcon}).bindPopup(feature.properties.STN_NAM);
+				else return L.marker(latlng,{icon: house2Icon}).bindPopup(feature.properties.STN_NAM);
+				}
+			});
+			layer_group4.addLayer(subwaystation);
+			//feature_group.addTo(map);
+			});
+			<!--End loading train stations-->
+			
+			
+			<!--Start Loading Elderly-Friendly Stations-->
+			
+			<!--End Loading Elderly-Friendly Stations-->
+			//var elderlystation;
+			//$.getJSON("ElderlyFriendlyStationGeoJson.geojson",function(data){
+			//var houseIcon=L.icon({iconUrl:'MRTE.png', iconSize:[10,10]});
+			
+			//elderlystation=L.geoJson(data,{
+			//	pointToLayer: function(feature,latlng){
+			//	var marker = L.marker(latlng,{icon: houseIcon});
+			//	marker.bindPopup(feature.properties.NAME);
+			//	return marker;
+			//	}
+			//});
+			//layer_group4.addLayer(elderlystation);
+			//feature_group.addTo(map);
+			//});
+			<!--Start loading MRT buffer areas-->
+			var buffer;
+			$.getJSON("BufferDissolved.geojson",function(data){
+				buffer=L.geoJson(data);
+				layer_group5.addLayer(buffer);
+				//feature_group.addTo(map);
+			});
+			<!--End loading MRT buffer areas-->
+			
+			<!--Start loading proportional areas-->
+			<!--Create methods to vary circle size-->
+			var centroid;
+			function updatePropSymbols(timestamp) {
+
+				centroid.eachLayer(function(layer) {  
+				
+					//var props = layer.feature.properties,
+					radius = calcPropRadius(layer.feature.properties.PNTCNT),
+					layer.setRadius(radius);
+				});
+			} // end updatePropSymbols
+			
+			
+			function calcPropRadius(attributeValue) {
+				
+				var scaleFactor = 16,  // value dependent upon particular data set
+				area = attributeValue * scaleFactor; 
+
+				return Math.sqrt(area/Math.PI)*2;  
+				
+			} // end calcPropRadius
+			<!--End creating of methods to vary circle size-->
+			<!--define variables of a circle marker-->
+			var geojsonMarkerOptions = {
+				fillColor: "#feb24c",	
+				color: '#537898',	
+				weight: 1,	
+				fillOpacity: 0.6
+			};
+			<!--end circle marker definition-->
+			
+			$.getJSON("ResidentPtCentroidGeoJson.geojson",function(data){
+			<!--var houseIcon=L.icon({iconUrl:'home-512.png', iconSize:[10,10]});-->
+			
+			centroid=L.geoJson(data,{
+				pointToLayer: function(feature,latlng){
+				var marker = L.circleMarker(latlng, geojsonMarkerOptions);
+				marker.bindPopup("SUBZONE: "+feature.properties.SUBZONE_N+'<br/>' +"NUMBER OF RESIDENCES: "+feature.properties.PNTCNT);
+				//L.marker(latlng,{icon: houseIcon});
+				//marker.bindPopup(feature.properties.NAME + '<br/>' +feature.properties.ADDRESSSTR + ' ' + feature.properties.ADDRESSPOS);
+				//updatePropSymbols(feature.properties.newPointCT)
+				return marker;
+				}
+				
+			});
+			updatePropSymbols("newPointCT");
+				layer_group6.addLayer(centroid);
+				//feature_group.addTo(map);
+			});
+			<!--End loading proportional areas-->
+			//layer_group.addTo(map);
+			var map=L.map('map',{layers: [basemap,layer_group]}).setView([1.3505, 103.7920], 11);
+			
+			//var map=L.map('map').setView([1.3505, 103.7920], 11);
+			//layer_group.addTo(map);
+			var baseMaps = {
+			"Basemap": basemap
+			};
+
+			var overlayMaps = {
+				"Elderly Population": layer_group,
+				"Barrier Free Residences": layer_group2,
+				"MRT Lines": layer_group3,
+				"MRT Stations": layer_group4,
+				"MRT station buffer": layer_group5,
+				"Barrier Free Residence Density": layer_group6
+			};
+			<!--Adding a legend-->
+			var populationLegend = L.control({position: 'bottomright'});
+			var populationChangeLegend = L.control({position: 'bottomright'});
+
+			populationLegend.onAdd = function (map) {
+				//var div = L.DomUtil.create('div', 'info legend');
+				//div.innerHTML +=
+				//'<img src="MRT.png" alt="legend" width="134" height="147">';
+				//return div;
+				
+				var div = L.DomUtil.create('div', 'info legend'),
+				grades = [0, 1290, 3500, 6290, 12780],
+				labels = [];
+
+				// loop through our density intervals and generate a label with a colored square for each interval
+				for (var i = 0; i < grades.length; i++) {
+				div.innerHTML +=
+				'<i style="background:' + getColor(grades[i]+1) + '"></i> ' +
+				grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+				}
+				return div;
+			};
+
+			populationChangeLegend.onAdd = function (map) {
+				var div = L.DomUtil.create('div', 'info legend');
+				div.innerHTML +=
+				'<img src="MRT.png" alt="Normal" width="18" height="18"> ' +
+				'Elder Friendly' + (150 ? '' + '' + '<br>' : '+')+
+				'<img src="MRTE.png" alt="Elderly" width="18" height="18"> ' +
+				'Regular' + (150 ? '' + '' + '<br>' : '+');
+			return div;
+			};
+
+// Add this one (only) for now, as the Population layer is on by default
+			populationLegend.addTo(map);
+
+			map.on('overlayadd', function (eventLayer) {
+    // Switch to the Population legend...
+				if (eventLayer.name === 'Elderly Population') {
+					//this.removeControl(populationChangeLegend);
+					populationLegend.addTo(this);
+				} else if (eventLayer.name === 'MRT Stations') {
+					//this.removeControl(populationChangeLegend);
+					populationChangeLegend.addTo(this);
+				}else{}
+				//else { // Or switch to the Population Change legend...
+				//	this.removeControl(populationLegend);
+				//	populationChangeLegend.addTo(this);
+				//}
+			});
+			map.on('overlayremove', function (eventLayer) {
+				if (eventLayer.name === 'Elderly Population') {
+					this.removeControl(populationLegend);
+				} else if (eventLayer.name === 'MRT Stations') {
+					this.removeControl(populationChangeLegend);
+				}else{}
+					//populationChangeLegend.addTo(this);
+				
+			});
+			//map.on('overlayremove', function (eventLayer) {
+			//	if (eventLayer.name === 'Elderly Population') {
+			//		this.removeControl(populationLegend);
+			//	} else{}
+			//});
+			<!--Finish adding  legend-->
+			
+			
+			L.control.layers(baseMaps, overlayMaps).addTo(map);
+			
+		</script>
+		
+	</body>
+</html>
